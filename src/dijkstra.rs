@@ -20,7 +20,7 @@
 use std::collections::BinaryHeap;
 
 use crate::constants::Weight;
-use crate::constants::{NodeId, INVALID_NODE, WEIGHT_MAX};
+use crate::constants::{Node, NodeId, INVALID_NODE, WEIGHT_MAX};
 use crate::heap_item::HeapItem;
 use crate::preparation_graph::PreparationGraph;
 use crate::shortest_path::ShortestPath;
@@ -31,9 +31,9 @@ pub struct Dijkstra {
     data: Vec<Data>,
     valid_flags: ValidFlags,
     heap: BinaryHeap<HeapItem>,
-    avoid_node: NodeId,
+    avoid_node: Node,
     max_weight: Weight,
-    start_node: NodeId,
+    start_node: Node,
 }
 
 impl Dijkstra {
@@ -51,7 +51,7 @@ impl Dijkstra {
     }
 
     pub fn avoid_node(&mut self, node: NodeId) {
-        self.avoid_node = node;
+        self.avoid_node = Node::Node(node);
         self.start_node = INVALID_NODE;
     }
 
@@ -71,13 +71,13 @@ impl Dijkstra {
             "given graph has invalid node count"
         );
         assert!(
-            start != self.avoid_node && end != self.avoid_node,
+            !self.avoid_node.has_id(start) && !self.avoid_node.has_id(end),
             "path calculation must not start or end with avoided node"
         );
         if start == end {
             return Some(ShortestPath::singular(start));
         }
-        if start != self.start_node {
+        if !self.start_node.has_id(start) {
             self.heap.clear();
             self.valid_flags.invalidate_all();
             self.update_node(start, 0, INVALID_NODE);
@@ -86,7 +86,7 @@ impl Dijkstra {
         if self.is_settled(end) {
             return self.build_path(start, end);
         }
-        self.start_node = start;
+        self.start_node = Node::Node(start);
 
         while !self.heap.is_empty() {
             let curr = self.heap.pop().unwrap();
@@ -96,14 +96,14 @@ impl Dijkstra {
                 continue;
             }
             for i in 0..graph.out_edges[curr.node_id].len() {
-                let adj = graph.out_edges[curr.node_id][i].adj_node;
-                let edge_weight = graph.out_edges[curr.node_id][i].weight;
-                if adj == self.avoid_node {
+                let adj = graph.out_edges[curr.node_id][i].adj_node();
+                let edge_weight = graph.out_edges[curr.node_id][i].weight();
+                if self.avoid_node.has_id(adj) {
                     continue;
                 }
                 let weight = curr.weight + edge_weight;
                 if weight < self.get_weight(adj) {
-                    self.update_node(adj, weight, curr.node_id);
+                    self.update_node(adj, weight, Node::Node(curr.node_id));
                     self.heap.push(HeapItem::new(weight, adj));
                 }
             }
@@ -129,9 +129,9 @@ impl Dijkstra {
         }
         let mut result = Vec::new();
         let mut node = end;
-        while self.data[node].parent != INVALID_NODE {
+        while let Node::Node(id) = self.data[node].parent {
             result.push(node);
-            node = self.data[node].parent;
+            node = id;
         }
         result.push(start);
         Some(ShortestPath::new(
@@ -142,7 +142,7 @@ impl Dijkstra {
         ))
     }
 
-    fn update_node(&mut self, node: NodeId, weight: Weight, parent: NodeId) {
+    fn update_node(&mut self, node: NodeId, weight: Weight, parent: Node) {
         self.valid_flags.set_valid(node);
         self.data[node].settled = false;
         self.data[node].weight = weight;
@@ -162,10 +162,11 @@ impl Dijkstra {
     }
 }
 
+// TODO: I bet `valid_flags` could be removed if this was an Enum.
 struct Data {
     settled: bool,
     weight: Weight,
-    parent: NodeId,
+    parent: Node,
 }
 
 impl Data {

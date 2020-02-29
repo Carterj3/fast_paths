@@ -59,10 +59,10 @@ pub fn handle_shortcuts<F>(
     dijkstra.avoid_node(node);
     for i in 0..graph.in_edges[node].len() {
         for j in 0..graph.out_edges[node].len() {
-            let weight = graph.in_edges[node][i].weight + graph.out_edges[node][j].weight;
+            let weight = graph.in_edges[node][i].weight() + graph.out_edges[node][j].weight();
             dijkstra.set_max_weight(weight);
-            let in_node = graph.in_edges[node][i].adj_node;
-            let out_node = graph.out_edges[node][j].adj_node;
+            let in_node = graph.in_edges[node][i].adj_node();
+            let out_node = graph.out_edges[node][j].adj_node();
             // todo: optimize: no need to return the full path here
             let shortest_path = dijkstra.calc_path(graph, in_node, out_node);
             if shortest_path.is_none() {

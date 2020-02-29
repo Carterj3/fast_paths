@@ -23,7 +23,7 @@ use std::collections::BTreeSet;
 use priority_queue::PriorityQueue;
 
 use crate::constants::Weight;
-use crate::constants::{EdgeId, NodeId, INVALID_EDGE, INVALID_NODE};
+use crate::constants::{Edge, EdgeId, Node, NodeId, INVALID_EDGE, INVALID_NODE};
 use crate::fast_graph::FastGraphEdge;
 
 use super::dijkstra::Dijkstra;
@@ -35,8 +35,8 @@ use crate::node_contractor;
 pub struct FastGraphBuilder {
     fast_graph: FastGraph,
     num_nodes: usize,
-    center_nodes_fwd: Vec<NodeId>,
-    center_nodes_bwd: Vec<NodeId>,
+    center_nodes_fwd: Vec<Node>,
+    center_nodes_bwd: Vec<Node>,
 }
 
 impl FastGraphBuilder {
@@ -93,28 +93,28 @@ impl FastGraphBuilder {
             let node = queue.pop().unwrap().0;
             let mut neighbors = BTreeSet::new();
             for out_edge in &preparation_graph.out_edges[node] {
-                neighbors.insert(out_edge.adj_node);
+                neighbors.insert(out_edge.adj_node());
                 self.fast_graph.edges_fwd.push(FastGraphEdge::new(
                     node,
-                    out_edge.adj_node,
-                    out_edge.weight,
+                    out_edge.adj_node(),
+                    out_edge.weight(),
                     INVALID_EDGE,
                     INVALID_EDGE,
                 ));
-                self.center_nodes_fwd.push(out_edge.center_node);
+                self.center_nodes_fwd.push(out_edge.center_node());
             }
             self.fast_graph.first_edge_ids_fwd[rank + 1] = self.fast_graph.get_num_out_edges();
 
             for in_edge in &preparation_graph.in_edges[node] {
-                neighbors.insert(in_edge.adj_node);
+                neighbors.insert(in_edge.adj_node());
                 self.fast_graph.edges_bwd.push(FastGraphEdge::new(
                     node,
-                    in_edge.adj_node,
-                    in_edge.weight,
+                    in_edge.adj_node(),
+                    in_edge.weight(),
                     INVALID_EDGE,
                     INVALID_EDGE,
                 ));
-                self.center_nodes_bwd.push(in_edge.center_node)
+                self.center_nodes_bwd.push(in_edge.center_node())
             }
             self.fast_graph.first_edge_ids_bwd[rank + 1] = self.fast_graph.get_num_in_edges();
 
@@ -148,24 +148,24 @@ impl FastGraphBuilder {
             for out_edge in &preparation_graph.out_edges[node] {
                 self.fast_graph.edges_fwd.push(FastGraphEdge::new(
                     node,
-                    out_edge.adj_node,
-                    out_edge.weight,
+                    out_edge.adj_node(),
+                    out_edge.weight(),
                     INVALID_EDGE,
                     INVALID_EDGE,
                 ));
-                self.center_nodes_fwd.push(out_edge.center_node);
+                self.center_nodes_fwd.push(out_edge.center_node());
             }
             self.fast_graph.first_edge_ids_fwd[rank + 1] = self.fast_graph.get_num_out_edges();
 
             for in_edge in &preparation_graph.in_edges[node] {
                 self.fast_graph.edges_bwd.push(FastGraphEdge::new(
                     node,
-                    in_edge.adj_node,
-                    in_edge.weight,
+                    in_edge.adj_node(),
+                    in_edge.weight(),
                     INVALID_EDGE,
                     INVALID_EDGE,
                 ));
-                self.center_nodes_bwd.push(in_edge.center_node)
+                self.center_nodes_bwd.push(in_edge.center_node())
             }
             self.fast_graph.first_edge_ids_bwd[rank + 1] = self.fast_graph.get_num_in_edges();
 
@@ -184,14 +184,18 @@ impl FastGraphBuilder {
 
         for i in 0..self.num_nodes {
             for edge_id in self.fast_graph.begin_out_edges(i)..self.fast_graph.end_out_edges(i) {
-                let c = self.center_nodes_fwd[edge_id];
-                if c == INVALID_NODE {
-                    self.fast_graph.edges_fwd[edge_id].replaced_in_edge = INVALID_EDGE;
-                    self.fast_graph.edges_fwd[edge_id].replaced_out_edge = INVALID_EDGE;
-                } else {
-                    self.fast_graph.edges_fwd[edge_id].replaced_in_edge = self.get_in_edge_id(c, i);
-                    self.fast_graph.edges_fwd[edge_id].replaced_out_edge =
-                        self.get_out_edge_id(c, self.fast_graph.edges_fwd[edge_id].adj_node);
+                match self.center_nodes_fwd[edge_id] {
+                    Node::Invalid => {
+                        self.fast_graph.edges_fwd[edge_id].replaced_in_edge = INVALID_EDGE;
+                        self.fast_graph.edges_fwd[edge_id].replaced_out_edge = INVALID_EDGE;
+                    }
+                    Node::Node(c) => {
+                        self.fast_graph.edges_fwd[edge_id].replaced_in_edge =
+                            Edge::Edge(self.get_in_edge_id(c, i));
+                        self.fast_graph.edges_fwd[edge_id].replaced_out_edge = Edge::Edge(
+                            self.get_out_edge_id(c, self.fast_graph.edges_fwd[edge_id].adj_node),
+                        );
+                    }
                 }
             }
         }
@@ -199,14 +203,18 @@ impl FastGraphBuilder {
         for i in 0..self.num_nodes {
             for edge_id in self.fast_graph.begin_in_edges(i)..self.fast_graph.end_in_edges(i) {
                 let c = self.center_nodes_bwd[edge_id];
-                if c == INVALID_NODE {
-                    self.fast_graph.edges_bwd[edge_id].replaced_in_edge = INVALID_EDGE;
-                    self.fast_graph.edges_bwd[edge_id].replaced_out_edge = INVALID_EDGE;
-                } else {
-                    self.fast_graph.edges_bwd[edge_id].replaced_in_edge =
-                        self.get_in_edge_id(c, self.fast_graph.edges_bwd[edge_id].adj_node);
-                    self.fast_graph.edges_bwd[edge_id].replaced_out_edge =
-                        self.get_out_edge_id(c, i);
+                match c {
+                    Node::Invalid => {
+                        self.fast_graph.edges_bwd[edge_id].replaced_in_edge = INVALID_EDGE;
+                        self.fast_graph.edges_bwd[edge_id].replaced_out_edge = INVALID_EDGE;
+                    }
+                    Node::Node(c) => {
+                        self.fast_graph.edges_bwd[edge_id].replaced_in_edge = Edge::Edge(
+                            self.get_in_edge_id(c, self.fast_graph.edges_bwd[edge_id].adj_node),
+                        );
+                        self.fast_graph.edges_bwd[edge_id].replaced_out_edge =
+                            Edge::Edge(self.get_out_edge_id(c, i));
+                    }
                 }
             }
         }

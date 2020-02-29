@@ -21,7 +21,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::constants::Weight;
-use crate::constants::{EdgeId, NodeId, INVALID_EDGE};
+use crate::constants::{Edge, EdgeId, Node, NodeId, INVALID_EDGE};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FastGraph {
@@ -92,8 +92,8 @@ pub struct FastGraphEdge {
     pub base_node: NodeId,
     pub adj_node: NodeId,
     pub weight: Weight,
-    pub replaced_in_edge: EdgeId,
-    pub replaced_out_edge: EdgeId,
+    pub replaced_in_edge: Edge,
+    pub replaced_out_edge: Edge,
 }
 
 impl FastGraphEdge {
@@ -101,8 +101,8 @@ impl FastGraphEdge {
         base_node: NodeId,
         adj_node: NodeId,
         weight: Weight,
-        replaced_edge1: EdgeId,
-        replaced_edge2: EdgeId,
+        replaced_edge1: Edge,
+        replaced_edge2: Edge,
     ) -> Self {
         FastGraphEdge {
             base_node,

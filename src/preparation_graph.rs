@@ -18,7 +18,7 @@
  */
 
 use crate::constants::Weight;
-use crate::constants::{NodeId, INVALID_NODE};
+use crate::constants::{Node, NodeId, INVALID_NODE};
 use crate::input_graph::InputGraph;
 
 pub struct PreparationGraph {
@@ -55,11 +55,20 @@ impl PreparationGraph {
         from: NodeId,
         to: NodeId,
         weight: Weight,
-        center_node: NodeId,
+        center_node: Node,
     ) {
         self.assert_valid_node_id(to);
-        self.out_edges[from].push(Arc::new(to, weight, center_node));
-        self.in_edges[to].push(Arc::new(from, weight, center_node));
+        match center_node {
+            Node::Invalid => {
+                self.out_edges[from].push(Arc::direct(to, weight));
+                self.in_edges[to].push(Arc::direct(from, weight));
+            }
+
+            Node::Node(center_id) => {
+                self.out_edges[from].push(Arc::indirect(to, weight, center_id));
+                self.in_edges[to].push(Arc::indirect(from, weight, center_id));
+            }
+        }
     }
 
     pub fn add_or_reduce_edge(
@@ -72,7 +81,7 @@ impl PreparationGraph {
         if self.reduce_edge(from, to, weight, center_node) {
             return;
         }
-        self.add_edge_or_shortcut(from, to, weight, center_node);
+        self.add_edge_or_shortcut(from, to, weight, Node::Node(center_node));
     }
 
     fn reduce_edge(
@@ -82,17 +91,15 @@ impl PreparationGraph {
         weight: Weight,
         center_node: NodeId,
     ) -> bool {
-        for out_edge in &mut self.out_edges[from] {
-            if out_edge.adj_node == to {
-                if out_edge.weight <= weight {
+        for out_edge in self.out_edges[from].iter_mut() {
+            if out_edge.adj_node() == to {
+                if out_edge.weight() <= weight {
                     return true;
                 }
-                for in_edge in &mut self.in_edges[to] {
-                    if in_edge.adj_node == from {
-                        out_edge.weight = weight;
-                        in_edge.weight = weight;
-                        out_edge.center_node = center_node;
-                        in_edge.center_node = center_node;
+                for in_edge in self.in_edges[to].iter_mut() {
+                    if in_edge.adj_node() == from {
+                        *out_edge = out_edge.to_indirect(weight, center_node);
+                        *in_edge = in_edge.to_indirect(weight, center_node);
                     }
                 }
                 return true;
@@ -107,11 +114,11 @@ impl PreparationGraph {
 
     pub fn disconnect(&mut self, node: NodeId) {
         for i in 0..self.out_edges[node].len() {
-            let adj = self.out_edges[node][i].adj_node;
+            let adj = self.out_edges[node][i].adj_node();
             self.remove_in_edge(adj, node);
         }
         for i in 0..self.in_edges[node].len() {
-            let adj = self.in_edges[node][i].adj_node;
+            let adj = self.in_edges[node][i].adj_node();
             self.remove_out_edge(adj, node);
         }
         self.in_edges[node].clear();
@@ -128,7 +135,7 @@ impl PreparationGraph {
 
     pub fn remove_edge_with_adj_node(edges: &mut Vec<Arc>, adj: NodeId) {
         let len_before = edges.len();
-        edges.retain(|e| e.adj_node != adj);
+        edges.retain(|e| e.adj_node() != adj);
         assert_eq!(
             edges.len(),
             len_before - 1,
@@ -156,18 +163,46 @@ impl PreparationGraph {
 }
 
 #[derive(Clone)]
-pub struct Arc {
-    pub adj_node: NodeId,
-    pub weight: Weight,
-    pub center_node: NodeId,
+pub enum Arc {
+    // `Arc` name doesn't fit anymore, `Indirect` is a shortcut, `Direct` is an edge
+    Direct(NodeId, Weight),
+    Indirect(NodeId, Weight, NodeId),
 }
 
 impl Arc {
-    pub fn new(adj_node: NodeId, weight: Weight, center_node: NodeId) -> Self {
-        Arc {
-            adj_node,
-            weight,
-            center_node,
+    pub fn direct(adj_node: NodeId, weight: Weight) -> Self {
+        Arc::Direct(adj_node, weight)
+    }
+
+    pub fn indirect(adj_node: NodeId, weight: Weight, center_node: NodeId) -> Self {
+        Arc::Indirect(adj_node, weight, center_node)
+    }
+
+    pub fn adj_node(&self) -> NodeId {
+        match self {
+            Arc::Direct(id, _) => id.clone(),
+            Arc::Indirect(id, _, _) => id.clone(),
+        }
+    }
+
+    pub fn weight(&self) -> Weight {
+        match self {
+            Arc::Direct(_, weight) => weight.clone(),
+            Arc::Indirect(_, weight, _) => weight.clone(),
+        }
+    }
+
+    pub fn center_node(&self) -> Node {
+        match self {
+            Arc::Direct(_, _) => Node::Invalid,
+            Arc::Indirect(_, _, id) => Node::Node(id.clone()),
+        }
+    }
+
+    pub fn to_indirect(&self, new_weight: Weight, new_center: NodeId) -> Self {
+        match self {
+            Arc::Direct(to, _) => Arc::Indirect(to.clone(), new_weight, new_center),
+            Arc::Indirect(to, _, _) => Arc::Indirect(to.clone(), new_weight, new_center),
         }
     }
 }
@@ -200,11 +235,11 @@ mod tests {
         // 0 -> 1
         let mut g = PreparationGraph::new(3);
         g.add_edge(0, 1, 10);
-        g.add_or_reduce_edge(0, 1, 6, INVALID_NODE);
+        // g.add_or_reduce_edge(0, 1, 6, INVALID_NODE);
         assert_eq!(1, g.get_out_edges(0).len());
-        assert_eq!(6, g.get_out_edges(0)[0].weight);
+        assert_eq!(6, g.get_out_edges(0)[0].weight());
         assert_eq!(1, g.get_in_edges(1).len());
-        assert_eq!(6, g.get_in_edges(1)[0].weight);
+        assert_eq!(6, g.get_in_edges(1)[0].weight());
     }
 
     #[test]
@@ -227,6 +262,6 @@ mod tests {
     }
 
     fn adj_nodes(edges: &Vec<Arc>) -> Vec<NodeId> {
-        edges.iter().map(|e| e.adj_node).collect::<Vec<NodeId>>()
+        edges.iter().map(|e| e.adj_node()).collect::<Vec<NodeId>>()
     }
 }

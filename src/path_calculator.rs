@@ -23,7 +23,7 @@ use crate::constants::Weight;
 use crate::constants::INVALID_EDGE;
 use crate::constants::INVALID_NODE;
 use crate::constants::WEIGHT_MAX;
-use crate::constants::{EdgeId, NodeId};
+use crate::constants::{Edge, EdgeId, Node, NodeId};
 use crate::fast_graph::FastGraph;
 use crate::heap_item::HeapItem;
 use crate::shortest_path::ShortestPath;
@@ -103,7 +103,12 @@ impl PathCalculator {
                     let edge_weight = graph.edges_fwd[edge_id].weight;
                     let weight = curr.weight + edge_weight;
                     if weight < self.get_weight_fwd(adj) {
-                        self.update_node_fwd(adj, weight, curr.node_id, edge_id);
+                        self.update_node_fwd(
+                            adj,
+                            weight,
+                            Node::Node(curr.node_id),
+                            Edge::Edge(edge_id),
+                        );
                         self.heap_fwd.push(HeapItem::new(weight, adj));
                     }
                 }
@@ -112,7 +117,7 @@ impl PathCalculator {
                     && curr.weight + self.get_weight_bwd(curr.node_id) < best_weight
                 {
                     best_weight = curr.weight + self.get_weight_bwd(curr.node_id);
-                    meeting_node = curr.node_id;
+                    meeting_node = Node::Node(curr.node_id);
                 }
                 break;
             }
@@ -135,7 +140,12 @@ impl PathCalculator {
                     let edge_weight = graph.edges_bwd[edge_id].weight;
                     let weight = curr.weight + edge_weight;
                     if weight < self.get_weight_bwd(adj) {
-                        self.update_node_bwd(adj, weight, curr.node_id, edge_id);
+                        self.update_node_bwd(
+                            adj,
+                            weight,
+                            Node::Node(curr.node_id),
+                            Edge::Edge(edge_id),
+                        );
                         self.heap_bwd.push(HeapItem::new(weight, adj));
                     }
                 }
@@ -144,17 +154,18 @@ impl PathCalculator {
                     && curr.weight + self.get_weight_fwd(curr.node_id) < best_weight
                 {
                     best_weight = curr.weight + self.get_weight_fwd(curr.node_id);
-                    meeting_node = curr.node_id;
+                    meeting_node = Node::Node(curr.node_id);
                 }
                 break;
             }
         }
 
-        if meeting_node == INVALID_NODE {
-            return None;
-        } else {
-            let node_ids = self.extract_nodes(graph, start, end, meeting_node);
-            return Some(ShortestPath::new(start, end, best_weight, node_ids));
+        match meeting_node {
+            Node::Invalid => None,
+            Node::Node(id) => {
+                let node_ids = self.extract_nodes(graph, start, end, id);
+                Some(ShortestPath::new(start, end, best_weight, node_ids))
+            }
         }
     }
 
@@ -165,20 +176,30 @@ impl PathCalculator {
         end: NodeId,
         meeting_node: NodeId,
     ) -> Vec<NodeId> {
-        assert_ne!(meeting_node, INVALID_NODE);
+        // assert_ne!(meeting_node, INVALID_NODE);
         assert!(self.valid_flags_fwd.is_valid(meeting_node));
         assert!(self.valid_flags_bwd.is_valid(meeting_node));
+
         let mut result = Vec::new();
-        let mut node = meeting_node;
-        while self.data_fwd[node].inc_edge != INVALID_EDGE {
-            PathCalculator::unpack_fwd(graph, &mut result, self.data_fwd[node].inc_edge, true);
-            node = self.data_fwd[node].parent;
+        if let Edge::Edge(edge_id) = self.data_fwd[meeting_node].inc_edge {
+            PathCalculator::unpack_fwd(graph, &mut result, edge_id, true);
+            let mut node = self.data_fwd[edge_id].parent;
+
+            while let Node::Node(node_id) = node {
+                PathCalculator::unpack_fwd(graph, &mut result, edge_id, true);
+                node = self.data_fwd[node_id].parent;
+            }
         }
+
         result.reverse();
-        node = meeting_node;
-        while self.data_bwd[node].inc_edge != INVALID_EDGE {
-            PathCalculator::unpack_bwd(graph, &mut result, self.data_bwd[node].inc_edge, false);
-            node = self.data_bwd[node].parent;
+        if let Edge::Edge(edge_id) = self.data_bwd[meeting_node].inc_edge {
+            PathCalculator::unpack_fwd(graph, &mut result, edge_id, true);
+            let mut node = self.data_bwd[edge_id].parent;
+
+            while let Node::Node(node_id) = node {
+                PathCalculator::unpack_fwd(graph, &mut result, edge_id, true);
+                node = self.data_bwd[node_id].parent;
+            }
         }
         result.push(end);
         result
@@ -190,31 +211,19 @@ impl PathCalculator {
             return;
         }
         if reverse {
-            PathCalculator::unpack_fwd(
-                graph,
-                nodes,
-                graph.edges_fwd[edge_id].replaced_out_edge,
-                reverse,
-            );
-            PathCalculator::unpack_bwd(
-                graph,
-                nodes,
-                graph.edges_fwd[edge_id].replaced_in_edge,
-                reverse,
-            );
+            if let Edge::Edge(id) = graph.edges_fwd[edge_id].replaced_out_edge {
+                PathCalculator::unpack_fwd(graph, nodes, id, reverse);
+            }
+            if let Edge::Edge(id) = graph.edges_fwd[edge_id].replaced_in_edge {
+                PathCalculator::unpack_bwd(graph, nodes, id, reverse);
+            }
         } else {
-            PathCalculator::unpack_bwd(
-                graph,
-                nodes,
-                graph.edges_fwd[edge_id].replaced_in_edge,
-                reverse,
-            );
-            PathCalculator::unpack_fwd(
-                graph,
-                nodes,
-                graph.edges_fwd[edge_id].replaced_out_edge,
-                reverse,
-            );
+            if let Edge::Edge(id) = graph.edges_fwd[edge_id].replaced_in_edge {
+                PathCalculator::unpack_bwd(graph, nodes, id, reverse);
+            }
+            if let Edge::Edge(id) = graph.edges_fwd[edge_id].replaced_out_edge {
+                PathCalculator::unpack_fwd(graph, nodes, id, reverse);
+            }
         }
     }
 
@@ -224,35 +233,23 @@ impl PathCalculator {
             return;
         }
         if reverse {
-            PathCalculator::unpack_fwd(
-                graph,
-                nodes,
-                graph.edges_bwd[edge_id].replaced_out_edge,
-                reverse,
-            );
-            PathCalculator::unpack_bwd(
-                graph,
-                nodes,
-                graph.edges_bwd[edge_id].replaced_in_edge,
-                reverse,
-            );
+            if let Edge::Edge(id) = graph.edges_bwd[edge_id].replaced_out_edge {
+                PathCalculator::unpack_fwd(graph, nodes, id, reverse);
+            }
+            if let Edge::Edge(id) = graph.edges_bwd[edge_id].replaced_in_edge {
+                PathCalculator::unpack_bwd(graph, nodes, id, reverse);
+            }
         } else {
-            PathCalculator::unpack_bwd(
-                graph,
-                nodes,
-                graph.edges_bwd[edge_id].replaced_in_edge,
-                reverse,
-            );
-            PathCalculator::unpack_fwd(
-                graph,
-                nodes,
-                graph.edges_bwd[edge_id].replaced_out_edge,
-                reverse,
-            );
+            if let Edge::Edge(id) = graph.edges_bwd[edge_id].replaced_in_edge {
+                PathCalculator::unpack_bwd(graph, nodes, id, reverse);
+            }
+            if let Edge::Edge(id) = graph.edges_bwd[edge_id].replaced_out_edge {
+                PathCalculator::unpack_fwd(graph, nodes, id, reverse);
+            }
         }
     }
 
-    fn update_node_fwd(&mut self, node: NodeId, weight: Weight, parent: NodeId, inc_edge: EdgeId) {
+    fn update_node_fwd(&mut self, node: NodeId, weight: Weight, parent: Node, inc_edge: Edge) {
         self.valid_flags_fwd.set_valid(node);
         self.data_fwd[node].settled = false;
         self.data_fwd[node].weight = weight;
@@ -260,7 +257,7 @@ impl PathCalculator {
         self.data_fwd[node].inc_edge = inc_edge;
     }
 
-    fn update_node_bwd(&mut self, node: NodeId, weight: Weight, parent: NodeId, inc_edge: EdgeId) {
+    fn update_node_bwd(&mut self, node: NodeId, weight: Weight, parent: Node, inc_edge: Edge) {
         self.valid_flags_bwd.set_valid(node);
         self.data_bwd[node].settled = false;
         self.data_bwd[node].weight = weight;
@@ -293,11 +290,12 @@ impl PathCalculator {
     }
 }
 
+// TODO: I bet `valid_flags` could be removed if this was an Enum.
 struct Data {
     settled: bool,
     weight: Weight,
-    parent: NodeId,
-    inc_edge: usize,
+    parent: Node,
+    inc_edge: Edge,
 }
 
 impl Data {
@@ -334,7 +332,8 @@ mod tests {
         let mut g = FastGraph::new(3);
         g.edges_fwd
             .push(FastGraphEdge::new(0, 1, 2, INVALID_EDGE, INVALID_EDGE));
-        g.edges_fwd.push(FastGraphEdge::new(0, 2, 5, 0, 0));
+        g.edges_fwd
+            .push(FastGraphEdge::new(0, 2, 5, Edge::Edge(0), Edge::Edge(0)));
         g.edges_bwd
             .push(FastGraphEdge::new(2, 1, 3, INVALID_EDGE, INVALID_EDGE));
         g.first_edge_ids_fwd = vec![0, 2, 0, 0];

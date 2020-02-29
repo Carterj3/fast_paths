@@ -17,11 +17,44 @@
  * under the License.
  */
 
+use serde::{Deserialize, Serialize};
+
 pub type NodeId = usize;
 pub type EdgeId = usize;
 pub type Weight = usize;
 
-pub const INVALID_NODE: NodeId = std::usize::MAX;
-pub const INVALID_EDGE: EdgeId = std::usize::MAX;
+#[derive(Eq, PartialEq, Clone, Copy, Deserialize, Serialize, Debug)]
+pub enum Node {
+    Invalid,
+    Node(NodeId),
+}
+
+impl Node {
+    pub fn has_id(&self, id: NodeId) -> bool {
+        match self {
+            Node::Invalid => false,
+            Node::Node(node_id) => *node_id == id,
+        }
+    }
+}
+
+#[derive(Eq, PartialEq, Clone, Copy, Deserialize, Serialize, Debug)]
+pub enum Edge {
+    Invalid,
+    Edge(EdgeId),
+}
+
+impl Edge {
+    pub fn has_id(&self, id: EdgeId) -> bool {
+        match self {
+            Edge::Invalid => false,
+            Edge::Edge(edge_id) => *edge_id == id,
+        }
+    }
+}
+
+pub const INVALID_NODE: Node = Node::Invalid;
+pub const INVALID_EDGE: Edge = Edge::Invalid;
+
 pub const WEIGHT_MAX: Weight = std::usize::MAX;
 pub const WEIGHT_ZERO: Weight = 0;
