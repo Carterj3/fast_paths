@@ -326,7 +326,7 @@ mod tests {
         weight: Weight,
         nodes: Vec<NodeId>,
     ) {
-        assert_eq!(
+        debug_assert_eq!(
             calc_path(fast_graph, source, target),
             Some(ShortestPath::new(source, target, weight, nodes))
         );

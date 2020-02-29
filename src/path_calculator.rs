@@ -58,13 +58,13 @@ impl PathCalculator {
         start: NodeId,
         end: NodeId,
     ) -> Option<ShortestPath> {
-        assert_eq!(
+        debug_assert_eq!(
             graph.get_num_nodes(),
             self.num_nodes,
             "given graph has invalid node count"
         );
-        assert!(start < self.num_nodes, "invalid start node");
-        assert!(end < self.num_nodes, "invalid end node");
+        debug_assert!(start < self.num_nodes, "invalid start node");
+        debug_assert!(end < self.num_nodes, "invalid end node");
         self.heap_fwd.clear();
         self.heap_bwd.clear();
         self.valid_flags_fwd.invalidate_all();
@@ -165,9 +165,9 @@ impl PathCalculator {
         end: NodeId,
         meeting_node: NodeId,
     ) -> Vec<NodeId> {
-        assert_ne!(meeting_node, INVALID_NODE);
-        assert!(self.valid_flags_fwd.is_valid(meeting_node));
-        assert!(self.valid_flags_bwd.is_valid(meeting_node));
+        debug_assert_ne!(meeting_node, INVALID_NODE);
+        debug_assert!(self.valid_flags_fwd.is_valid(meeting_node));
+        debug_assert!(self.valid_flags_bwd.is_valid(meeting_node));
         let mut result = Vec::new();
         let mut node = meeting_node;
         while self.data_fwd[node].inc_edge != INVALID_EDGE {

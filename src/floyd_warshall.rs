@@ -38,7 +38,7 @@ impl FloydWarshall {
     }
 
     pub fn prepare(&mut self, input_graph: &InputGraph) {
-        assert_eq!(
+        debug_assert_eq!(
             input_graph.get_num_nodes(),
             self.num_nodes,
             "input graph has invalid number of nodes"

@@ -129,7 +129,7 @@ impl PreparationGraph {
     pub fn remove_edge_with_adj_node(edges: &mut Vec<Arc>, adj: NodeId) {
         let len_before = edges.len();
         edges.retain(|e| e.adj_node != adj);
-        assert_eq!(
+        debug_assert_eq!(
             edges.len(),
             len_before - 1,
             "should have removed exactly one edge"
@@ -145,7 +145,7 @@ impl PreparationGraph {
     }
 
     fn assert_valid_node_id(&self, node: NodeId) {
-        assert!(
+        debug_assert!(
             node < self.num_nodes,
             format!(
                 "invalid node id {}, must be in [0, {}[",

@@ -65,12 +65,12 @@ impl Dijkstra {
         start: NodeId,
         end: NodeId,
     ) -> Option<ShortestPath> {
-        assert_eq!(
+        debug_assert_eq!(
             graph.get_num_nodes(),
             self.num_nodes,
             "given graph has invalid node count"
         );
-        assert!(
+        debug_assert!(
             start != self.avoid_node && end != self.avoid_node,
             "path calculation must not start or end with avoided node"
         );
@@ -302,7 +302,7 @@ mod tests {
         source: NodeId,
         target: NodeId,
     ) {
-        assert_eq!(dijkstra.calc_path(&graph, source, target), None);
+        debug_assert_eq!(dijkstra.calc_path(&graph, source, target), None);
     }
 
     fn assert_path(
@@ -313,7 +313,7 @@ mod tests {
         weight: Weight,
         nodes: Vec<NodeId>,
     ) {
-        assert_eq!(
+        debug_assert_eq!(
             dijkstra.calc_path(&graph, source, target),
             Some(ShortestPath::new(source, target, weight, nodes))
         );

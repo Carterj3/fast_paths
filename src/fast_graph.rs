@@ -114,7 +114,7 @@ impl FastGraphEdge {
     }
 
     pub fn is_shortcut(&self) -> bool {
-        assert!(
+        debug_assert!(
             (self.replaced_in_edge == INVALID_EDGE && self.replaced_out_edge == INVALID_EDGE)
                 || (self.replaced_in_edge != INVALID_EDGE
                     && self.replaced_out_edge != INVALID_EDGE)

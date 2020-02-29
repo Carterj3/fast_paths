@@ -215,7 +215,7 @@ mod tests {
         }
     }
 
-    #[ignore]
+    // #[ignore]
     #[test]
     fn run_performance_test_dist() {
         println!("Running performance test for Bremen dist");
