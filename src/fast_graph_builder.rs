@@ -202,8 +202,7 @@ impl FastGraphBuilder {
 
         for i in 0..self.num_nodes {
             for edge_id in self.fast_graph.begin_in_edges(i)..self.fast_graph.end_in_edges(i) {
-                let c = self.center_nodes_bwd[edge_id];
-                match c {
+                match self.center_nodes_bwd[edge_id] {
                     Node::Invalid => {
                         self.fast_graph.edges_bwd[edge_id].replaced_in_edge = INVALID_EDGE;
                         self.fast_graph.edges_bwd[edge_id].replaced_out_edge = INVALID_EDGE;

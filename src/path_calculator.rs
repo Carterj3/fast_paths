@@ -193,7 +193,7 @@ impl PathCalculator {
         result.reverse();
         let mut edge = self.data_bwd[meeting_node].inc_edge;
         while let Edge::Edge(edge_id) = edge {
-            PathCalculator::unpack_fwd(graph, &mut result, edge_id, true);
+            PathCalculator::unpack_bwd(graph, &mut result, edge_id, true);
             edge = match self.data_bwd[edge_id].parent {
                 Node::Invalid => Edge::Invalid,
                 Node::Node(node_id) => self.data_bwd[node_id].inc_edge,
