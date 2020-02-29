@@ -20,7 +20,7 @@
 use std::collections::BinaryHeap;
 
 use crate::constants::Weight;
-use crate::constants::{Node, NodeId, INVALID_NODE, WEIGHT_MAX};
+use crate::constants::{Node, NodeId, WEIGHT_MAX};
 use crate::heap_item::HeapItem;
 use crate::preparation_graph::PreparationGraph;
 use crate::shortest_path::ShortestPath;
@@ -44,15 +44,15 @@ impl Dijkstra {
             data: (0..num_nodes).map(|_i| Data::new()).collect(),
             valid_flags: ValidFlags::new(num_nodes),
             heap,
-            avoid_node: INVALID_NODE,
+            avoid_node: Node::Invalid,
             max_weight: WEIGHT_MAX,
-            start_node: INVALID_NODE,
+            start_node: Node::Invalid,
         }
     }
 
     pub fn avoid_node(&mut self, node: NodeId) {
         self.avoid_node = Node::Node(node);
-        self.start_node = INVALID_NODE;
+        self.start_node = Node::Invalid;
     }
 
     pub fn set_max_weight(&mut self, weight: Weight) {
@@ -80,7 +80,7 @@ impl Dijkstra {
         if !self.start_node.has_id(start) {
             self.heap.clear();
             self.valid_flags.invalidate_all();
-            self.update_node(start, 0, INVALID_NODE);
+            self.update_node(start, 0, Node::Invalid);
             self.heap.push(HeapItem::new(0, start));
         }
         if self.is_settled(end) {
@@ -175,7 +175,7 @@ impl Data {
         Data {
             settled: false,
             weight: WEIGHT_MAX,
-            parent: INVALID_NODE,
+            parent: Node::Invalid,
         }
     }
 }

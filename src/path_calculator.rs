@@ -20,8 +20,6 @@
 use std::collections::BinaryHeap;
 
 use crate::constants::Weight;
-use crate::constants::INVALID_EDGE;
-use crate::constants::INVALID_NODE;
 use crate::constants::WEIGHT_MAX;
 use crate::constants::{Edge, EdgeId, Node, NodeId};
 use crate::fast_graph::FastGraph;
@@ -73,13 +71,13 @@ impl PathCalculator {
             return Some(ShortestPath::singular(start));
         }
 
-        self.update_node_fwd(start, 0, INVALID_NODE, INVALID_EDGE);
-        self.update_node_bwd(end, 0, INVALID_NODE, INVALID_EDGE);
+        self.update_node_fwd(start, 0, Node::Invalid, Edge::Invalid);
+        self.update_node_bwd(end, 0, Node::Invalid, Edge::Invalid);
         self.heap_fwd.push(HeapItem::new(0, start));
         self.heap_bwd.push(HeapItem::new(0, end));
 
         let mut best_weight = WEIGHT_MAX;
-        let mut meeting_node = INVALID_NODE;
+        let mut meeting_node = Node::Invalid;
 
         loop {
             if self.heap_fwd.is_empty() && self.heap_bwd.is_empty() {
@@ -176,7 +174,7 @@ impl PathCalculator {
         end: NodeId,
         meeting_node: NodeId,
     ) -> Vec<NodeId> {
-        // assert_ne!(meeting_node, INVALID_NODE);
+        // assert_ne!(meeting_node, Node::Invalid);
         assert!(self.valid_flags_fwd.is_valid(meeting_node));
         assert!(self.valid_flags_bwd.is_valid(meeting_node));
 
@@ -301,8 +299,8 @@ impl Data {
         Data {
             settled: false,
             weight: WEIGHT_MAX,
-            parent: INVALID_NODE,
-            inc_edge: INVALID_EDGE,
+            parent: Node::Invalid,
+            inc_edge: Edge::Invalid,
         }
     }
 }
@@ -318,7 +316,7 @@ mod tests {
         // 0 -> 1
         let mut g = FastGraph::new(2);
         g.edges_fwd
-            .push(FastGraphEdge::new(0, 1, 3, INVALID_EDGE, INVALID_EDGE));
+            .push(FastGraphEdge::new(0, 1, 3, Edge::Invalid, Edge::Invalid));
         let mut nodes = vec![];
         PathCalculator::unpack_fwd(&g, &mut nodes, 0, false);
         assert_eq!(nodes, vec![0]);
@@ -329,11 +327,11 @@ mod tests {
         // 0 -> 1 -> 2
         let mut g = FastGraph::new(3);
         g.edges_fwd
-            .push(FastGraphEdge::new(0, 1, 2, INVALID_EDGE, INVALID_EDGE));
+            .push(FastGraphEdge::new(0, 1, 2, Edge::Invalid, Edge::Invalid));
         g.edges_fwd
             .push(FastGraphEdge::new(0, 2, 5, Edge::Edge(0), Edge::Edge(0)));
         g.edges_bwd
-            .push(FastGraphEdge::new(2, 1, 3, INVALID_EDGE, INVALID_EDGE));
+            .push(FastGraphEdge::new(2, 1, 3, Edge::Invalid, Edge::Invalid));
         g.first_edge_ids_fwd = vec![0, 2, 0, 0];
         let mut nodes = vec![];
         PathCalculator::unpack_fwd(&g, &mut nodes, 1, false);

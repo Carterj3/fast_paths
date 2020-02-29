@@ -21,7 +21,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::constants::Weight;
-use crate::constants::{Edge, EdgeId, Node, NodeId, INVALID_EDGE};
+use crate::constants::{Edge, EdgeId, Node, NodeId};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FastGraph {
@@ -115,10 +115,13 @@ impl FastGraphEdge {
 
     pub fn is_shortcut(&self) -> bool {
         assert!(
-            (self.replaced_in_edge == INVALID_EDGE && self.replaced_out_edge == INVALID_EDGE)
-                || (self.replaced_in_edge != INVALID_EDGE
-                    && self.replaced_out_edge != INVALID_EDGE)
+            (self.replaced_in_edge == Edge::Invalid && self.replaced_out_edge == Edge::Invalid)
+                || (self.replaced_in_edge != Edge::Invalid
+                    && self.replaced_out_edge != Edge::Invalid)
         );
-        return self.replaced_in_edge != INVALID_EDGE;
+        match self.replaced_in_edge {
+            Edge::Invalid => false,
+            Edge::Edge(_) => true,
+        }
     }
 }

@@ -18,7 +18,7 @@
  */
 
 use crate::constants::Weight;
-use crate::constants::{Node, NodeId, INVALID_NODE};
+use crate::constants::{Node, NodeId};
 use crate::input_graph::InputGraph;
 
 pub struct PreparationGraph {
@@ -47,7 +47,7 @@ impl PreparationGraph {
     }
 
     pub fn add_edge(&mut self, from: NodeId, to: NodeId, weight: Weight) {
-        self.add_edge_or_shortcut(from, to, weight, INVALID_NODE);
+        self.add_edge_or_shortcut(from, to, weight, Node::Invalid);
     }
 
     pub fn add_edge_or_shortcut(
@@ -244,7 +244,7 @@ mod tests {
         // 0 -> 1
         let mut g = PreparationGraph::new(3);
         g.add_edge(0, 1, 10);
-        g.add_or_reduce_edge(0, 1, 6, INVALID_NODE);
+        g.add_or_reduce_edge(0, 1, 6, Node::Invalid);
         assert_eq!(1, g.get_out_edges(0).len());
         assert_eq!(6, g.get_out_edges(0)[0].weight());
         assert_eq!(1, g.get_in_edges(1).len());

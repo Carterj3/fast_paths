@@ -53,8 +53,5 @@ impl Edge {
     }
 }
 
-pub const INVALID_NODE: Node = Node::Invalid;
-pub const INVALID_EDGE: Edge = Edge::Invalid;
-
 pub const WEIGHT_MAX: Weight = std::usize::MAX;
 pub const WEIGHT_ZERO: Weight = 0;

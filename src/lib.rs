@@ -395,6 +395,7 @@ mod tests {
     }
 
     fn create_seed() -> u64 {
-        SystemTime::now().elapsed().unwrap().as_nanos() as u64
+        // SystemTime::now().elapsed().unwrap().as_nanos() as u64
+        0x32F7DCAA // 116
     }
 }
