@@ -17,8 +17,8 @@
  * under the License.
  */
 
-use crate::constants::NodeId;
 use crate::constants::Weight;
+use crate::constants::{Node, NodeId};
 use crate::dijkstra::Dijkstra;
 use crate::fast_graph_builder::Params;
 use crate::preparation_graph::PreparationGraph;
@@ -77,7 +77,7 @@ fn add_shortcut(graph: &mut PreparationGraph, shortcut: Shortcut) {
         shortcut.from,
         shortcut.to,
         shortcut.weight,
-        shortcut.center_node,
+        Node::Node(shortcut.center_node),
     );
 }
 

@@ -76,21 +76,15 @@ impl PreparationGraph {
         from: NodeId,
         to: NodeId,
         weight: Weight,
-        center_node: NodeId,
+        center_node: Node,
     ) {
         if self.reduce_edge(from, to, weight, center_node) {
             return;
         }
-        self.add_edge_or_shortcut(from, to, weight, Node::Node(center_node));
+        self.add_edge_or_shortcut(from, to, weight, center_node);
     }
 
-    fn reduce_edge(
-        &mut self,
-        from: NodeId,
-        to: NodeId,
-        weight: Weight,
-        center_node: NodeId,
-    ) -> bool {
+    fn reduce_edge(&mut self, from: NodeId, to: NodeId, weight: Weight, center_node: Node) -> bool {
         for out_edge in self.out_edges[from].iter_mut() {
             if out_edge.adj_node() == to {
                 if out_edge.weight() <= weight {
@@ -98,8 +92,16 @@ impl PreparationGraph {
                 }
                 for in_edge in self.in_edges[to].iter_mut() {
                     if in_edge.adj_node() == from {
-                        *out_edge = out_edge.to_indirect(weight, center_node);
-                        *in_edge = in_edge.to_indirect(weight, center_node);
+                        match center_node {
+                            Node::Invalid => {
+                                *out_edge = out_edge.to_direct(weight);
+                                *in_edge = in_edge.to_direct(weight);
+                            }
+                            Node::Node(center_id) => {
+                                *out_edge = out_edge.to_indirect(weight, center_id);
+                                *in_edge = in_edge.to_indirect(weight, center_id);
+                            }
+                        }
                     }
                 }
                 return true;
@@ -205,6 +207,13 @@ impl Arc {
             Arc::Indirect(to, _, _) => Arc::Indirect(to.clone(), new_weight, new_center),
         }
     }
+
+    pub fn to_direct(&self, new_weight: Weight) -> Self {
+        match self {
+            Arc::Direct(to, _) => Arc::Direct(to.clone(), new_weight),
+            Arc::Indirect(to, _, _) => Arc::Direct(to.clone(), new_weight),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -235,7 +244,7 @@ mod tests {
         // 0 -> 1
         let mut g = PreparationGraph::new(3);
         g.add_edge(0, 1, 10);
-        // g.add_or_reduce_edge(0, 1, 6, INVALID_NODE);
+        g.add_or_reduce_edge(0, 1, 6, INVALID_NODE);
         assert_eq!(1, g.get_out_edges(0).len());
         assert_eq!(6, g.get_out_edges(0)[0].weight());
         assert_eq!(1, g.get_in_edges(1).len());

@@ -181,25 +181,23 @@ impl PathCalculator {
         assert!(self.valid_flags_bwd.is_valid(meeting_node));
 
         let mut result = Vec::new();
-        if let Edge::Edge(edge_id) = self.data_fwd[meeting_node].inc_edge {
+        let mut edge = self.data_fwd[meeting_node].inc_edge;
+        while let Edge::Edge(edge_id) = edge {
             PathCalculator::unpack_fwd(graph, &mut result, edge_id, true);
-            let mut node = self.data_fwd[edge_id].parent;
-
-            while let Node::Node(node_id) = node {
-                PathCalculator::unpack_fwd(graph, &mut result, edge_id, true);
-                node = self.data_fwd[node_id].parent;
-            }
+            edge = match self.data_fwd[edge_id].parent {
+                Node::Invalid => Edge::Invalid,
+                Node::Node(node_id) => self.data_fwd[node_id].inc_edge,
+            };
         }
 
         result.reverse();
-        if let Edge::Edge(edge_id) = self.data_bwd[meeting_node].inc_edge {
+        let mut edge = self.data_bwd[meeting_node].inc_edge;
+        while let Edge::Edge(edge_id) = edge {
             PathCalculator::unpack_fwd(graph, &mut result, edge_id, true);
-            let mut node = self.data_bwd[edge_id].parent;
-
-            while let Node::Node(node_id) = node {
-                PathCalculator::unpack_fwd(graph, &mut result, edge_id, true);
-                node = self.data_bwd[node_id].parent;
-            }
+            edge = match self.data_bwd[edge_id].parent {
+                Node::Invalid => Edge::Invalid,
+                Node::Node(node_id) => self.data_bwd[node_id].inc_edge,
+            };
         }
         result.push(end);
         result
