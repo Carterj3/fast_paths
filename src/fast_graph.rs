@@ -21,7 +21,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::constants::Weight;
-use crate::constants::{Edge, EdgeId, Node, NodeId};
+use crate::constants::{Edge, EdgeId, NodeId};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FastGraph {

@@ -44,14 +44,5 @@ pub enum Edge {
     Edge(EdgeId),
 }
 
-impl Edge {
-    pub fn has_id(&self, id: EdgeId) -> bool {
-        match self {
-            Edge::Invalid => false,
-            Edge::Edge(edge_id) => *edge_id == id,
-        }
-    }
-}
-
 pub const WEIGHT_MAX: Weight = std::usize::MAX;
 pub const WEIGHT_ZERO: Weight = 0;
