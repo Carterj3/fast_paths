@@ -21,7 +21,28 @@ pub type NodeId = usize;
 pub type EdgeId = usize;
 pub type Weight = usize;
 
-pub const INVALID_NODE: NodeId = std::usize::MAX;
-pub const INVALID_EDGE: EdgeId = std::usize::MAX;
-pub const WEIGHT_MAX: Weight = std::usize::MAX;
+#[cfg(feature = "invalid_usize")]
+mod maximum {
+    pub const INVALID_NODE: usize = std::usize::MAX;
+    pub const INVALID_EDGE: usize = std::usize::MAX;
+    pub const WEIGHT_MAX: usize = std::usize::MAX;
+}
+
+#[cfg(feature = "invalid_u32")]
+mod maximum {
+    pub const INVALID_NODE: u32 = std::u32::MAX;
+    pub const INVALID_EDGE: u32 = std::u32::MAX;
+    pub const WEIGHT_MAX: u32 = std::u32::MAX;
+}
+
+#[cfg(feature = "invalid_u64")]
+mod maximum {
+    pub const INVALID_NODE: u64 = std::u64::MAX;
+    pub const INVALID_EDGE: u64 = std::u64::MAX;
+    pub const WEIGHT_MAX: u64 = std::u64::MAX;
+}
+
+pub const INVALID_NODE: NodeId = maximum::INVALID_NODE as NodeId;
+pub const INVALID_EDGE: EdgeId = maximum::INVALID_EDGE as EdgeId;
+pub const WEIGHT_MAX: Weight = maximum::WEIGHT_MAX as Weight;
 pub const WEIGHT_ZERO: Weight = 0;
