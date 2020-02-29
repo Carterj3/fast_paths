@@ -215,7 +215,7 @@ mod tests {
         }
     }
 
-    #[ignore]
+    // #[ignore]
     #[test]
     fn run_performance_test_dist() {
         println!("Running performance test for Bremen dist");
@@ -395,7 +395,6 @@ mod tests {
     }
 
     fn create_seed() -> u64 {
-        // SystemTime::now().elapsed().unwrap().as_nanos() as u64
-        0x32F7DCAA // 116
+        SystemTime::now().elapsed().unwrap().as_nanos() as u64
     }
 }
