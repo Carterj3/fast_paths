@@ -181,22 +181,22 @@ impl PathCalculator {
         assert!(self.valid_flags_bwd.is_valid(meeting_node));
 
         let mut result = Vec::new();
-        let mut edge = self.data_fwd[meeting_node].inc_edge;
-        while let Edge::Edge(edge_id) = edge {
+        let mut node_id = meeting_node;
+        while let Edge::Edge(edge_id) = self.data_fwd[node_id].inc_edge {
             PathCalculator::unpack_fwd(graph, &mut result, edge_id, true);
-            edge = match self.data_fwd[edge_id].parent {
-                Node::Invalid => Edge::Invalid,
-                Node::Node(node_id) => self.data_fwd[node_id].inc_edge,
+            node_id = match self.data_fwd[node_id].parent {
+                Node::Invalid => unreachable!("Nodes are valid"),
+                Node::Node(node_id) => node_id,
             };
         }
 
         result.reverse();
-        let mut edge = self.data_bwd[meeting_node].inc_edge;
-        while let Edge::Edge(edge_id) = edge {
+        let mut node_id = meeting_node;
+        while let Edge::Edge(edge_id) = self.data_bwd[node_id].inc_edge {
             PathCalculator::unpack_bwd(graph, &mut result, edge_id, true);
-            edge = match self.data_bwd[edge_id].parent {
-                Node::Invalid => Edge::Invalid,
-                Node::Node(node_id) => self.data_bwd[node_id].inc_edge,
+            node_id = match self.data_bwd[node_id].parent {
+                Node::Invalid => unreachable!("Nodes are valid"),
+                Node::Node(node_id) => node_id,
             };
         }
         result.push(end);
